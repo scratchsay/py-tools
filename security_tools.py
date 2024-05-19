@@ -15,9 +15,7 @@ fake = Faker()
 def get_suburls(base_url):
     try:
         response = requests.get(base_url, timeout=5)
-        if response.status_code != 200:
-            return set()
-        
+        response.raise_for_status()  # Raise an exception for HTTP errors
         soup = BeautifulSoup(response.content, 'html.parser')
         anchor_tags = soup.find_all('a', href=True)
         
@@ -29,6 +27,7 @@ def get_suburls(base_url):
                 sub_urls.add(full_url)
         return sub_urls
     except requests.RequestException as e:
+        print(f"Error fetching URL {base_url}: {e}")
         return set()
 
 def crawl_website(start_url, output_text):
@@ -135,8 +134,12 @@ def identity_spoof():
 def run_pylint(file_or_directory):
     """Run pylint on the specified file or directory."""
     try:
-        result = subprocess.run(['pylint', file_or_directory], capture_output=True, text=True)
+        result = subprocess.run(['pylint', file_or_directory], capture_output=True, text=True, check=True)
         return result.stdout, result.stderr
+    except subprocess.CalledProcessError as e:
+        return e.output, e.stderr
+    except FileNotFoundError:
+        return None, "pylint not found. Please ensure it is installed and in your PATH."
     except Exception as e:
         return None, str(e)
 
